@@ -16,7 +16,6 @@ import com.cefet.godziny.infraestrutura.persistencia.usuario.UsuarioRepositorioJ
 import lombok.RequiredArgsConstructor;
 import jakarta.transaction.Transactional;
 import jakarta.validation.Valid;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
@@ -29,16 +28,12 @@ import org.springframework.web.bind.annotation.CrossOrigin;
 @RequiredArgsConstructor
 public class UsuarioControle implements IUsuarioApi{
 
-    @Autowired
     private final UsuarioRepositorioJpa usuarioRepositorioJpa;
 
-    @Autowired
     private final CursoRepositorioJpa cursoRepositorioJpa;
 
-    @Autowired
     private final AtividadeRepositorioJpa atividadeRepositorioJpa;
-
-    @Autowired
+    
     private final PasswordEncoder enconder;
 
     @Override

@@ -1,7 +1,6 @@
 package com.cefet.godziny.domain.casouso.curso;
 
 import java.util.Optional;
-import org.springframework.beans.factory.annotation.Autowired;
 import com.cefet.godziny.api.curso.CursoDto;
 import com.cefet.godziny.constantes.usuario.EnumRecursos;
 import com.cefet.godziny.infraestrutura.exceptions.CampoRepetidoNoBancoException;
@@ -20,10 +19,8 @@ import lombok.*;
 @Setter
 public class CriarCursoCasoUso {
 
-    @Autowired
     private final CursoRepositorioJpa cursoRepositorioJpa;
 
-    @Autowired
     private final UsuarioRepositorioJpa usuarioRepositorioJpa;
 
     @NotNull(message = "A sigla do curso é obrigatória")

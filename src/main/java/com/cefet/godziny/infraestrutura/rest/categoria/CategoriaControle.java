@@ -1,7 +1,6 @@
 package com.cefet.godziny.infraestrutura.rest.categoria;
 
 import java.util.UUID;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
@@ -30,13 +29,10 @@ import org.springframework.web.bind.annotation.RestController;
 @RequiredArgsConstructor
 public class CategoriaControle implements ICategoriaApi {
 
-    @Autowired
     private final CategoriaRepositorioJpa categoriaRepositorioJpa;
 
-    @Autowired
     private final CursoRepositorioJpa cursoRepositorioJpa;
 
-    @Autowired
     private final AtividadeRepositorioJpa atividadeRepositorioJpa;
 
     @Override

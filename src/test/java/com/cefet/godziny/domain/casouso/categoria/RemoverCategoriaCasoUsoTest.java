@@ -1,10 +1,11 @@
+
 package com.cefet.godziny.domain.casouso.categoria;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.mockito.Mockito.doNothing;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
+
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
@@ -12,12 +13,15 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.Mockito;
-import org.springframework.boot.test.context.SpringBootTest;
-import static org.assertj.core.api.Assertions.assertThat;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContext;
+import org.springframework.security.core.context.SecurityContextHolder;
 import com.cefet.godziny.constantes.atividade.EnumStatus;
 import com.cefet.godziny.constantes.usuario.EnumRecursos;
+import com.cefet.godziny.infraestrutura.exceptions.UsuarioNaoAutorizadoException;
 import com.cefet.godziny.infraestrutura.exceptions.categoria.RemoverCategoriaComAtividadesException;
 import com.cefet.godziny.infraestrutura.persistencia.atividade.AtividadeEntidade;
 import com.cefet.godziny.infraestrutura.persistencia.atividade.AtividadeRepositorioJpa;
@@ -27,11 +31,8 @@ import com.cefet.godziny.infraestrutura.persistencia.categoria.CategoriaReposito
 import com.cefet.godziny.infraestrutura.persistencia.curso.CursoEntidade;
 import com.cefet.godziny.infraestrutura.persistencia.usuario.UsuarioEntidade;
 
-@SpringBootTest
-public class RemoverCategoriaCasoUsoTest {
-    
-    @Mock
-    private CategoriaEntidade entidade;
+@ExtendWith(MockitoExtension.class)
+class RemoverCategoriaCasoUsoTest {
 
     @Mock
     private CategoriaRepositorioJpa categoriaRepositorioJpa;
@@ -41,76 +42,188 @@ public class RemoverCategoriaCasoUsoTest {
 
     private RemoverCategoriaCasoUso removerCategoriaCasoUso;
 
+    private UUID categoriaId;
+
     @BeforeEach
     void inicializarDados() {
-        removerCategoriaCasoUso = new RemoverCategoriaCasoUso(categoriaRepositorioJpa, atividadeRepositorioJpa, UUID.randomUUID());
-    };
+        categoriaId = UUID.randomUUID();
+
+        removerCategoriaCasoUso = new RemoverCategoriaCasoUso(
+            categoriaRepositorioJpa,
+            atividadeRepositorioJpa,
+            categoriaId
+        );
+    }
 
     @AfterEach
     void limparDados() {
-        categoriaRepositorioJpa.deleteAll();
+        SecurityContextHolder.clearContext();
     }
-    
 
     @Test
-    @DisplayName("Should delete a Categoria successfully")
-    void testRemoverCategoriaSuccess() throws Exception {
-        this.entidade = createCategoriaEntidade();
+    @DisplayName("It should remove categoria with no atividade as a ADM user successfully")
+    void deveRemoverCategoriaSemAtividades() throws Exception {
+        configurarUsuario(EnumRecursos.ADM);
 
-        doNothing().when(categoriaRepositorioJpa).deleteCategoria(Mockito.any(UUID.class));
-        removerCategoriaCasoUso.validarRemocao();
+        CategoriaEntidade categoria = criarCategoriaEntidade();
+
+        when(categoriaRepositorioJpa.findById(categoriaId))
+            .thenReturn(categoria);
+
+        when(atividadeRepositorioJpa.findByCategoria(categoria))
+            .thenReturn(List.of());
+
+        doNothing().when(categoriaRepositorioJpa)
+            .deleteCategoria(categoriaId);
+
+        assertDoesNotThrow(
+            () -> removerCategoriaCasoUso.validarRemocao()
+        );
+
         removerCategoriaCasoUso.removerCategoria();
 
-        verify(categoriaRepositorioJpa, times(1)).deleteCategoria(Mockito.any(UUID.class));
+        verify(categoriaRepositorioJpa).findById(categoriaId);
+        verify(atividadeRepositorioJpa).findByCategoria(categoria);
+        verify(categoriaRepositorioJpa).deleteCategoria(categoriaId);
     }
 
     @Test
-    @DisplayName("Try to delete an Categoria and return an excepiton because she has Atividades")
-    void testRemoverCursoCasoUsoExceptionCase1() throws Exception{
-        this.entidade = createCategoriaEntidade();
-        List<AtividadeEntidade> atividadeList = List.of(new AtividadeEntidade(
-            UUID.randomUUID(),
-            new UsuarioEntidade(99999, createCursoEntidade(), "nome TESTE", "teste@test.com", "senha TESTE", EnumRecursos.NORMAL, LocalDateTime.now()),
-            this.entidade,
-            "nome atividade TESTE",
-            LocalDateTime.now(),
-            EnumStatus.APROVADA,
-            new ArquivoEntidade(UUID.randomUUID(), "nome TESTE", "tipo TESTE", "dados TESTE".getBytes()),
-            (float) 2.4,
-            "comentario TESTE"
-        ));
+    @DisplayName("It should not remove categoria as user ADM because it has atividades")
+    void naoDeveRemoverCategoriaComAtividades() throws Exception {
+        configurarUsuario(EnumRecursos.ADM);
 
-        when(categoriaRepositorioJpa.findById(Mockito.any(UUID.class))).thenReturn(entidade);
-        when(atividadeRepositorioJpa.findByCategoria(Mockito.any(CategoriaEntidade.class))).thenReturn(atividadeList);
-        Exception thrown = assertThrows(RemoverCategoriaComAtividadesException.class, () -> {
-            removerCategoriaCasoUso.validarRemocao();
-        });
-        
-        assertThat(thrown).isNotNull();
-        assertThat(thrown.getMessage()).isEqualTo("Não é possível excluir uma categoria que possui atividades cadastradas");
+        CategoriaEntidade categoria = criarCategoriaEntidade();
+
+        when(categoriaRepositorioJpa.findById(categoriaId))
+            .thenReturn(categoria);
+
+        when(atividadeRepositorioJpa.findByCategoria(categoria))
+            .thenReturn(List.of(criarAtividade(categoria)));
+
+        RemoverCategoriaComAtividadesException exception =
+            assertThrows(
+                RemoverCategoriaComAtividadesException.class,
+                () -> removerCategoriaCasoUso.validarRemocao()
+            );
+
+        assertThat(exception.getMessage()).isEqualTo(
+            "Não é possível excluir uma categoria que possui atividades cadastradas"
+        );
+
+        verify(categoriaRepositorioJpa).findById(categoriaId);
+        verify(atividadeRepositorioJpa).findByCategoria(categoria);
+        verify(categoriaRepositorioJpa, never())
+            .deleteCategoria(any(UUID.class));
     }
 
+    @Test
+    @DisplayName("It should not remove categoria as NORMAL user")
+    void usuarioNormalNaoDeveRemoverCategoria() {
+        configurarUsuario(EnumRecursos.NORMAL);
 
-     private CategoriaEntidade createCategoriaEntidade(){
-        CategoriaEntidade entidade = new CategoriaEntidade(
-            UUID.randomUUID(), 
-            createCursoEntidade(),
+        UsuarioNaoAutorizadoException exception =
+            assertThrows(
+                UsuarioNaoAutorizadoException.class,
+                () -> removerCategoriaCasoUso.validarRemocao()
+            );
+
+        assertThat(exception.getMessage()).isEqualTo(
+            "Acesso restrito. Este módulo é acessível exclusivamente a administradores"
+        );
+
+        verifyNoInteractions(categoriaRepositorioJpa, atividadeRepositorioJpa
+        );
+    }
+
+    @Test
+    @DisplayName("It should not remove categoria as NORMAL user even when it does not have atividades")
+    void usuarioNormalNaoDeveExcluirCategoriaSemAtividades() {
+        configurarUsuario(EnumRecursos.NORMAL);
+
+        assertThrows(
+            UsuarioNaoAutorizadoException.class,
+            () -> {
+                removerCategoriaCasoUso.validarRemocao();
+                removerCategoriaCasoUso.removerCategoria();
+            }
+        );
+
+        verifyNoInteractions(
+            categoriaRepositorioJpa,
+            atividadeRepositorioJpa
+        );
+    }
+
+    private void configurarUsuario(EnumRecursos tipo) {
+        UsuarioEntidade usuario = mock(UsuarioEntidade.class);
+
+        when(usuario.getTipo()).thenReturn(tipo);
+
+        Authentication authentication = mock(Authentication.class);
+        when(authentication.getPrincipal()).thenReturn(usuario);
+
+        SecurityContext context =
+            SecurityContextHolder.createEmptyContext();
+
+        context.setAuthentication(authentication);
+        SecurityContextHolder.setContext(context);
+    }
+
+    private CategoriaEntidade criarCategoriaEntidade() {
+        return new CategoriaEntidade(
+            categoriaId,
+            criarCursoEntidade(),
             "categoria_TESTE",
-            (float) 0.1, (float) 0.1,
+            0.1f,
+            0.1f,
             "descricao_TESTE"
         );
-        return entidade;
     }
 
-    private CursoEntidade createCursoEntidade(){
-        CursoEntidade curso = new CursoEntidade(
+    private CursoEntidade criarCursoEntidade() {
+        return new CursoEntidade(
             UUID.randomUUID(),
             "CURSO_ID_TESTE",
             "TESTE",
             100,
-            new UsuarioEntidade(99999, null, "nome TESTE", "teste@test.com", "senha TESTE", EnumRecursos.ADM, LocalDateTime.now())
+            new UsuarioEntidade(
+                99999,
+                null,
+                "nome TESTE",
+                "teste@test.com",
+                "senha TESTE",
+                EnumRecursos.ADM,
+                LocalDateTime.now()
+            )
         );
-        return curso;
     }
 
+    private AtividadeEntidade criarAtividade(
+        CategoriaEntidade categoria
+    ) {
+        return new AtividadeEntidade(
+            UUID.randomUUID(),
+            new UsuarioEntidade(
+                99999,
+                criarCursoEntidade(),
+                "nome TESTE",
+                "teste@test.com",
+                "senha TESTE",
+                EnumRecursos.NORMAL,
+                LocalDateTime.now()
+            ),
+            categoria,
+            "nome atividade TESTE",
+            LocalDateTime.now(),
+            EnumStatus.APROVADA,
+            new ArquivoEntidade(
+                UUID.randomUUID(),
+                "nome TESTE",
+                "tipo TESTE",
+                "dados TESTE".getBytes()
+            ),
+            2.4f,
+            "comentario TESTE"
+        );
+    }
 }

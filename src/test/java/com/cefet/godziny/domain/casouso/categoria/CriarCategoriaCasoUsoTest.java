@@ -1,5 +1,7 @@
 package com.cefet.godziny.domain.casouso.categoria;
 
+import static org.mockito.Mockito.lenient;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -11,10 +13,12 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
 import org.mockito.Mockito;
-import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.security.core.context.SecurityContext;
+import org.springframework.security.core.context.SecurityContextHolder;
 import com.cefet.godziny.api.categoria.CategoriaDto;
 import com.cefet.godziny.constantes.usuario.EnumRecursos;
 import com.cefet.godziny.infraestrutura.exceptions.CampoRepetidoNoBancoException;
+import com.cefet.godziny.infraestrutura.exceptions.UsuarioNaoAutorizadoException;
 import com.cefet.godziny.infraestrutura.exceptions.categoria.CriarCategoriaIncompletaException;
 import com.cefet.godziny.infraestrutura.persistencia.categoria.CategoriaEntidade;
 import com.cefet.godziny.infraestrutura.persistencia.categoria.CategoriaRepositorioJpa;
@@ -23,9 +27,12 @@ import com.cefet.godziny.infraestrutura.persistencia.curso.CursoRepositorioJpa;
 import com.cefet.godziny.infraestrutura.persistencia.usuario.UsuarioEntidade;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.security.core.Authentication;
 
-@SpringBootTest
-public class CriarCategoriaCasoUsoTest {
+@ExtendWith(MockitoExtension.class)
+class CriarCategoriaCasoUsoTest {
     private CategoriaDto categoriaDto;
     private CategoriaEntidade categoriaEntidade;
     private CursoEntidade cursoEntidade;
@@ -46,6 +53,8 @@ public class CriarCategoriaCasoUsoTest {
             (float) 1.0, (float) 1.0,
             "descrição_TESTE"
         );
+
+        configurarUsuario(EnumRecursos.ADM);
     };
 
     @AfterEach
@@ -55,6 +64,8 @@ public class CriarCategoriaCasoUsoTest {
         this.cursoEntidade = null;
         categoriaRepositorioJpa.deleteAll();
         cursoRepositorioJpa.deleteAll();
+
+        SecurityContextHolder.clearContext();
     }
     
     @Test
@@ -223,6 +234,23 @@ public class CriarCategoriaCasoUsoTest {
         assertThat(thrown.getMessage()).isEqualTo("Já existe uma categoria com este nome no curso selecionado");
     }
 
+    @Test
+    @DisplayName("It should not create categoria as a NORMAL user")
+    void testeCriarCategoriaUsuarioNormalNaoAutorizado() {
+        configurarUsuario(EnumRecursos.NORMAL);
+
+        UsuarioNaoAutorizadoException exception = assertThrows(
+            UsuarioNaoAutorizadoException.class,
+            () -> criarCategoriaCasoUso.validarCriacao()
+        );
+
+        assertThat(exception.getMessage()).isEqualTo(
+            "Acesso restrito. Este módulo é acessível exclusivamente a administradores"
+        );
+
+        verifyNoInteractions(cursoRepositorioJpa, categoriaRepositorioJpa);
+    }
+
     private CategoriaDto createCategoriaDto(){
         return new CategoriaDto(
             UUID.randomUUID(), 
@@ -249,6 +277,19 @@ public class CriarCategoriaCasoUsoTest {
             createCursoEntidade(), "Categoria_TESTE",
             (float) 1.0, (float) 1.0,
             "Descrição_TESTE");
+    }
+
+
+    private void configurarUsuario(EnumRecursos tipo) {
+        UsuarioEntidade usuario = Mockito.mock(UsuarioEntidade.class);
+        lenient().when(usuario.getTipo()).thenReturn(tipo);
+
+        Authentication authentication = Mockito.mock(Authentication.class);
+        lenient().when(authentication.getPrincipal()).thenReturn(usuario);
+
+        SecurityContext context = SecurityContextHolder.createEmptyContext();
+        context.setAuthentication(authentication);
+        SecurityContextHolder.setContext(context);
     }
 
 }

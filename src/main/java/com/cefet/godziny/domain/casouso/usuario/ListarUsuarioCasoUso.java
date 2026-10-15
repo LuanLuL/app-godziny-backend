@@ -1,6 +1,5 @@
 package com.cefet.godziny.domain.casouso.usuario;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import com.cefet.godziny.api.usuario.UsuarioRecuperarDto;
 import com.cefet.godziny.infraestrutura.persistencia.usuario.UsuarioEntidade;
 import com.cefet.godziny.infraestrutura.persistencia.usuario.UsuarioRepositorioJpa;
@@ -10,7 +9,6 @@ import lombok.*;
 
 @AllArgsConstructor
 public class ListarUsuarioCasoUso {
-    @Autowired
     private final UsuarioRepositorioJpa usuarioRepositorioJpa;
 
     @NotNull(message = "A matricula do usuário é obrigatória")

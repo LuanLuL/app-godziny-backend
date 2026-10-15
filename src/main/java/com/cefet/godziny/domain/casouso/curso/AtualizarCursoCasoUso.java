@@ -1,7 +1,6 @@
 package com.cefet.godziny.domain.casouso.curso;
 
 import java.util.UUID;
-import org.springframework.beans.factory.annotation.Autowired;
 import com.cefet.godziny.api.curso.CursoDto;
 import com.cefet.godziny.constantes.usuario.EnumRecursos;
 import com.cefet.godziny.infraestrutura.exceptions.CampoRepetidoNoBancoException;
@@ -19,10 +18,9 @@ import lombok.*;
 @AllArgsConstructor
 @Setter
 public class AtualizarCursoCasoUso {
-    @Autowired
+
     private final CursoRepositorioJpa cursoRepositorioJpa;
 
-    @Autowired
     private final UsuarioRepositorioJpa usuarioRepositorioJpa;
 
     @NotNull(message = "O id do curso é obrigatório")

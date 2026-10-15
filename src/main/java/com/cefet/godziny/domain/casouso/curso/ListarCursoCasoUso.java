@@ -1,6 +1,5 @@
 package com.cefet.godziny.domain.casouso.curso;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import com.cefet.godziny.api.curso.CursoDto;
 import com.cefet.godziny.api.curso.CursoRecuperarDto;
 import com.cefet.godziny.infraestrutura.persistencia.curso.CursoEntidade;
@@ -11,7 +10,6 @@ import lombok.*;
 
 @AllArgsConstructor
 public class ListarCursoCasoUso {
-    @Autowired
     private final CursoRepositorioJpa cursoRepositorioJpa;
 
     @NotNull(message = "A sigla do curso é obrigatória")

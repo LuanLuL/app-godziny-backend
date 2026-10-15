@@ -3,7 +3,6 @@ package com.cefet.godziny.infraestrutura.persistencia.curso;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
@@ -15,7 +14,6 @@ import com.cefet.godziny.infraestrutura.rest.curso.CursoRestConverter;
 @Component
 public class CursoRepositorioJpa implements ICursoRepositorio {
 
-    @Autowired
     private final CursoRepositorioJpaSpring repositorio;
 
     public CursoRepositorioJpa(CursoRepositorioJpaSpring repositorio){

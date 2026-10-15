@@ -293,4 +293,19 @@ public class RestExceptionsHandlerTest {
         assertThat(response).isNotNull();
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
     }
+
+    @Test
+    public void testUsuarioNaoAutorizadoException() {
+        UsuarioNaoAutorizadoException exception =
+            new UsuarioNaoAutorizadoException();
+
+        ResponseEntity<RestDefaultErrorMessage> response =
+            restExceptionsHandler.usuarioNaoAutorizadoException(exception);
+
+        assertThat(response).isNotNull();
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
+        assertThat(response.getBody()).isInstanceOf(RestDefaultErrorMessage.class);
+        assertThat(response.getBody().getStatus()).isEqualTo(HttpStatus.UNAUTHORIZED);
+        assertThat(response.getBody().getDetail()).isEqualTo(exception.getMessage());
+    }
 }

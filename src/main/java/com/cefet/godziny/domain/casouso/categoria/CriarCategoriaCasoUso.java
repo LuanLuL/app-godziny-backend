@@ -1,13 +1,19 @@
 package com.cefet.godziny.domain.casouso.categoria;
 
 import java.util.UUID;
-import org.springframework.beans.factory.annotation.Autowired;
+
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+
 import com.cefet.godziny.api.categoria.CategoriaDto;
+import com.cefet.godziny.constantes.usuario.EnumRecursos;
 import com.cefet.godziny.infraestrutura.exceptions.CampoRepetidoNoBancoException;
+import com.cefet.godziny.infraestrutura.exceptions.UsuarioNaoAutorizadoException;
 import com.cefet.godziny.infraestrutura.exceptions.categoria.CriarCategoriaIncompletaException;
 import com.cefet.godziny.infraestrutura.persistencia.categoria.CategoriaRepositorioJpa;
 import com.cefet.godziny.infraestrutura.persistencia.curso.CursoEntidade;
 import com.cefet.godziny.infraestrutura.persistencia.curso.CursoRepositorioJpa;
+import com.cefet.godziny.infraestrutura.persistencia.usuario.UsuarioEntidade;
 import com.cefet.godziny.infraestrutura.rest.categoria.CategoriaRestConverter;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -18,10 +24,8 @@ import lombok.*;
 @Setter
 public class CriarCategoriaCasoUso {
 
-    @Autowired
     private final CategoriaRepositorioJpa categoriaRepositorioJpa;
 
-    @Autowired
     private final CursoRepositorioJpa cursoRepositorioJpa;
 
     @NotNull(message = "A sigla do curso é obrigatória")
@@ -41,6 +45,12 @@ public class CriarCategoriaCasoUso {
     private String descricao;
 
     public CursoEntidade validarCriacao() throws Exception {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        UsuarioEntidade userContext = (UsuarioEntidade) authentication.getPrincipal();
+        if(!userContext.getTipo().equals(EnumRecursos.ADM)){
+            throw new UsuarioNaoAutorizadoException();
+        }
+
         if (this.cursoSigla.length() < 3 || this.cursoSigla.length() > 20) {
             throw new CriarCategoriaIncompletaException("A sigla do curso na categoria deve ter entre 3 e 20 caracteres");
         }

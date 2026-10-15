@@ -1,141 +1,283 @@
 package com.cefet.godziny.domain.casouso.categoria;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import java.time.LocalDateTime;
+import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.Mockito;
-import org.springframework.boot.test.context.SpringBootTest;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContext;
+import org.springframework.security.core.context.SecurityContextHolder;
+import jakarta.persistence.criteria.CriteriaBuilder;
+import jakarta.persistence.criteria.CriteriaQuery;
+import jakarta.persistence.criteria.Predicate;
+import jakarta.persistence.criteria.Root;
 import com.cefet.godziny.api.categoria.CategoriaRecuperarDto;
+import com.cefet.godziny.constantes.usuario.EnumRecursos;
 import com.cefet.godziny.infraestrutura.persistencia.categoria.CategoriaEntidade;
 import com.cefet.godziny.infraestrutura.persistencia.categoria.CategoriaRepositorioJpa;
 import com.cefet.godziny.infraestrutura.persistencia.curso.CursoEntidade;
 import com.cefet.godziny.infraestrutura.persistencia.usuario.UsuarioEntidade;
-import com.cefet.godziny.constantes.usuario.EnumRecursos;
-import com.cefet.godziny.infraestrutura.rest.categoria.CategoriaRestConverter;
-import static org.assertj.core.api.Assertions.assertThat;
 
-@SpringBootTest
-public class PesquisarCategoriaCasoUsoTest {
-    private CategoriaEntidade entidade;
+@ExtendWith(MockitoExtension.class)
+class PesquisarCategoriaCasoUsoTest {
 
     @Mock
-    CategoriaRepositorioJpa categoriaRepositorioJpa;
+    private CategoriaRepositorioJpa categoriaRepositorioJpa;
 
     private PesquisarCategoriaCasoUso pesquisarCategoriaCasoUso;
 
+    private CategoriaEntidade entidade;
+
     @BeforeEach
     void inicializarDados() {
-        pesquisarCategoriaCasoUso = new PesquisarCategoriaCasoUso(categoriaRepositorioJpa, "SIGLA_TESTE", "NOME_TESTE");
+        pesquisarCategoriaCasoUso = new PesquisarCategoriaCasoUso(
+            categoriaRepositorioJpa,
+            "SIGLA_TESTE",
+            "NOME_TESTE"
+        );
     }
 
     @AfterEach
     void limparDados() {
-        this.entidade = null;
-        categoriaRepositorioJpa.deleteAll();
+        entidade = null;
+        SecurityContextHolder.clearContext();
     }
 
-    @SuppressWarnings("unchecked")
     @Test
-    @DisplayName("Should validate and execute a successful category search")
-    void testePesquisarCategoriaCasoUsoSuccess() throws Exception {
-        this.entidade = createCategoriaEntidade();
-        Page<CategoriaEntidade> page = new PageImpl<>(List.of(this.entidade));
-        Pageable pageable = PageRequest.of(0, 10);
-        CategoriaRecuperarDto expectedDto = CategoriaRestConverter.EntidadeToCategoriaRecuperarDto(this.entidade);
+    @DisplayName("Should search for the categorias as a ADM user while aply every filters")
+    void devePesquisarCategoriasComoAdm() {
+        configurarUsuario(EnumRecursos.ADM, null);
 
-        when(categoriaRepositorioJpa.listCategorias(Mockito.any(Specification.class), Mockito.any(Pageable.class))).thenReturn(page);
-        pesquisarCategoriaCasoUso.validarPesquisa();
-        Page<CategoriaRecuperarDto> result = pesquisarCategoriaCasoUso.pesquisarCategoria(pageable);
+        entidade = criarCategoriaEntidade();
 
-        assertThat(result).isNotNull();
-        assertThat(result.getSize()).isEqualTo(1);
-        assertThat(result.get().findFirst().get())
-            .usingRecursiveComparison()
-            .isEqualTo(expectedDto);
+        executarPesquisaEValidarSpecification(
+            new PageImpl<>(List.of(entidade)),
+            PageRequest.of(0, 10),
+            true,
+            true,
+            true
+        );
     }
 
-    @SuppressWarnings("unchecked")
     @Test
-    @DisplayName("Should return categories filtered by sigla when nome is null")
-    void testePesquisarCategoriasComSiglaQuandoNomeNull() {
-        pesquisarCategoriaCasoUso = new PesquisarCategoriaCasoUso(categoriaRepositorioJpa, "SIGLA_TESTE", null);
-        this.entidade = createCategoriaEntidade();
-        Page<CategoriaEntidade> page = new PageImpl<>(List.of(this.entidade));
-        Pageable pageable = PageRequest.of(0, 10);
-        CategoriaRecuperarDto expectedDto = CategoriaRestConverter.EntidadeToCategoriaRecuperarDto(this.entidade);
+    @DisplayName("It should search for the categorias as a NORMAL user")
+    void devePesquisarCategoriasComoUsuarioNormal() {
+        EnumRecursos tipoNormal = Arrays.stream(EnumRecursos.values())
+            .filter(tipo -> tipo != EnumRecursos.ADM)
+            .findFirst()
+            .orElseThrow(() ->
+                new AssertionError("Não existe outro tipo em EnumRecursos")
+            );
 
-        when(categoriaRepositorioJpa.listCategorias(Mockito.any(Specification.class), Mockito.any(Pageable.class))).thenReturn(page);
-        Page<CategoriaRecuperarDto> result = pesquisarCategoriaCasoUso.pesquisarCategoria(pageable);
+        CursoEntidade cursoUsuario = Mockito.mock(CursoEntidade.class);
+        when(cursoUsuario.getId()).thenReturn(UUID.randomUUID());
 
-        assertThat(result).isNotNull();
-        assertThat(result.getSize()).isEqualTo(1);
-        assertThat(result.get().findFirst().get())
-            .usingRecursiveComparison()
-            .isEqualTo(expectedDto);
+        configurarUsuario(tipoNormal, cursoUsuario);
+
+        entidade = criarCategoriaEntidade();
+
+        executarPesquisaEValidarSpecification(
+            new PageImpl<>(List.of(entidade)),
+            PageRequest.of(0, 10),
+            true,
+            true,
+            false
+        );
     }
 
-    @SuppressWarnings("unchecked")
     @Test
-    @DisplayName("Should return categories filtered by nome when sigla is null")
-    void testePesquisarCategoriasComNomeQuandoSiglaNull() {
-        pesquisarCategoriaCasoUso = new PesquisarCategoriaCasoUso(categoriaRepositorioJpa, null, "NOME_TESTE");
-        this.entidade = createCategoriaEntidade();
-        Page<CategoriaEntidade> page = new PageImpl<>(List.of(this.entidade));
-        Pageable pageable = PageRequest.of(0, 10);
-        CategoriaRecuperarDto expectedDto = CategoriaRestConverter.EntidadeToCategoriaRecuperarDto(this.entidade);
+    @DisplayName("It should search only by sigla when nome is null")
+    void devePesquisarSomentePorSigla() {
+        configurarUsuario(EnumRecursos.ADM, null);
 
-        when(categoriaRepositorioJpa.listCategorias(Mockito.any(Specification.class), Mockito.any(Pageable.class))).thenReturn(page);
-        Page<CategoriaRecuperarDto> result = pesquisarCategoriaCasoUso.pesquisarCategoria(pageable);
+        pesquisarCategoriaCasoUso = new PesquisarCategoriaCasoUso(
+            categoriaRepositorioJpa,
+            "SIGLA_TESTE",
+            null
+        );
 
-        assertThat(result).isNotNull();
-        assertThat(result.getSize()).isEqualTo(1);
-        assertThat(result.get().findFirst().get())
-            .usingRecursiveComparison()
-            .isEqualTo(expectedDto);
+        entidade = criarCategoriaEntidade();
+
+        executarPesquisaEValidarSpecification(
+            new PageImpl<>(List.of(entidade)),
+            PageRequest.of(0, 10),
+            true,
+            false,
+            true
+        );
     }
 
-    @SuppressWarnings("unchecked")
     @Test
-    @DisplayName("Should return empty page when no categories match the criteria")
-    void testePesquisarCategoriasSemResultado() {
-        pesquisarCategoriaCasoUso = new PesquisarCategoriaCasoUso(categoriaRepositorioJpa, "SIGLA_TESTE", "NOME_TESTE");
-        Page<CategoriaEntidade> page = new PageImpl<>(List.of());
-        Pageable pageable = PageRequest.of(0, 10);
+    @DisplayName("It should search only by name when sigla is null")
+    void devePesquisarSomentePorNome() {
+        configurarUsuario(EnumRecursos.ADM, null);
 
-        when(categoriaRepositorioJpa.listCategorias(Mockito.any(Specification.class), Mockito.any(Pageable.class))).thenReturn(page);
-        Page<CategoriaRecuperarDto> result = pesquisarCategoriaCasoUso.pesquisarCategoria(pageable);
+        pesquisarCategoriaCasoUso = new PesquisarCategoriaCasoUso(
+            categoriaRepositorioJpa,
+            null,
+            "NOME_TESTE"
+        );
 
-        assertThat(result).isNotNull();
-        assertThat(result.getSize()).isEqualTo(0);
-        assertThat(result.getContent()).isEmpty();
+        entidade = criarCategoriaEntidade();
+
+        executarPesquisaEValidarSpecification(
+            new PageImpl<>(List.of(entidade)),
+            PageRequest.of(0, 10),
+            false,
+            true,
+            true
+        );
     }
 
-    private CategoriaEntidade createCategoriaEntidade() {
+    @Test
+    @DisplayName("It should return empty page with no results")
+    void deveRetornarPaginaVazia() {
+        configurarUsuario(EnumRecursos.ADM, null);
+
+        executarPesquisaEValidarSpecification(
+            new PageImpl<>(List.of()),
+            PageRequest.of(0, 10),
+            true,
+            true,
+            true
+        );
+    }
+
+    private void configurarUsuario(EnumRecursos tipo, CursoEntidade curso) {
+        UsuarioEntidade usuario = Mockito.mock(UsuarioEntidade.class);
+
+        when(usuario.getTipo()).thenReturn(tipo);
+
+        if (tipo == EnumRecursos.ADM) {
+            when(usuario.getMatricula()).thenReturn(99999);
+        } else {
+            when(usuario.getCurso()).thenReturn(curso);
+        }
+
+        Authentication authentication = Mockito.mock(Authentication.class);
+        when(authentication.getPrincipal()).thenReturn(usuario);
+
+        SecurityContext context =
+            SecurityContextHolder.createEmptyContext();
+
+        context.setAuthentication(authentication);
+        SecurityContextHolder.setContext(context);
+    }
+
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    private void executarPesquisaEValidarSpecification(
+        Page<CategoriaEntidade> paginaEsperada,
+        Pageable pageable,
+        boolean esperaFiltroSigla,
+        boolean esperaFiltroNome,
+        boolean usuarioAdm
+    ) {
+        when(categoriaRepositorioJpa.listCategorias(
+            any(Specification.class),
+            any(Pageable.class)
+        )).thenReturn(paginaEsperada);
+
+        Page<CategoriaRecuperarDto> resultado =
+            pesquisarCategoriaCasoUso.pesquisarCategoria(pageable);
+
+        assertThat(resultado).isNotNull();
+        assertThat(resultado.getContent())
+            .hasSize(paginaEsperada.getContent().size());
+
+        ArgumentCaptor<Specification> captor =
+            ArgumentCaptor.forClass(Specification.class);
+
+        verify(categoriaRepositorioJpa).listCategorias(
+            captor.capture(),
+            eq(pageable)
+        );
+
+        Root<CategoriaEntidade> root =
+            Mockito.mock(Root.class, Mockito.RETURNS_DEEP_STUBS);
+
+        CriteriaQuery<?> query = Mockito.mock(CriteriaQuery.class);
+
+        CriteriaBuilder criteriaBuilder =
+            Mockito.mock(
+                CriteriaBuilder.class,
+                Mockito.RETURNS_DEEP_STUBS
+            );
+
+        Predicate predicate = captor.getValue().toPredicate(
+            root,
+            query,
+            criteriaBuilder
+        );
+
+        assertThat(predicate).isNotNull();
+
+        if (esperaFiltroSigla) {
+            verify(criteriaBuilder).lower(any());
+            verify(criteriaBuilder).like(
+                any(),
+                eq("%sigla_teste%")
+            );
+        }
+
+        if (esperaFiltroNome) {
+            verify(criteriaBuilder).like(
+                any(),
+                eq("%NOME_TESTE%")
+            );
+        }
+
+        if (usuarioAdm) {
+            verify(criteriaBuilder).equal(any(), eq(99999));
+        } else {
+            verify(criteriaBuilder).in(any());
+        }
+    }
+
+    private CategoriaEntidade criarCategoriaEntidade() {
         return new CategoriaEntidade(
             UUID.randomUUID(),
-            createCursoEntidade(), "Categoria_TESTE",
-            (float) 1.0, (float) 1.0,
-            "Descrição_TESTE");
+            criarCursoEntidade(),
+            "NOME_TESTE",
+            1.0f,
+            1.0f,
+            "Descrição_TESTE"
+        );
     }
 
-    private CursoEntidade createCursoEntidade() {
+    private CursoEntidade criarCursoEntidade() {
         return new CursoEntidade(
             UUID.randomUUID(),
             "ODONT_DIV",
             "Odontologia",
             1,
-            new UsuarioEntidade(99999, null, "nome TESTE", "teste@test.com", "senha TESTE", EnumRecursos.ADM, LocalDateTime.now())
+            new UsuarioEntidade(
+                99999,
+                null,
+                "nome TESTE",
+                "teste@test.com",
+                "senha TESTE",
+                EnumRecursos.ADM,
+                LocalDateTime.now()
+            )
         );
     }
 }

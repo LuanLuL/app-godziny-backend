@@ -2,7 +2,6 @@ package com.cefet.godziny.domain.casouso.usuario;
 
 import java.util.List;
 import java.util.UUID;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
@@ -20,10 +19,8 @@ import lombok.*;
 
 @AllArgsConstructor
 public class PesquisarUsuarioCasoUso {
-    @Autowired
     private final UsuarioRepositorioJpa usuarioRepositorioJpa;
 
-    @Autowired
     private final CursoRepositorioJpa cursoRepositorioJpa;
 
     @NotNull(message = "A matricula do usuário é obrigatória")

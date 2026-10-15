@@ -1,6 +1,5 @@
 package com.cefet.godziny.domain.casouso.categoria;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
@@ -17,7 +16,7 @@ import lombok.*;
 
 @AllArgsConstructor
 public class PesquisarCategoriaCasoUso {
-    @Autowired
+
     private final CategoriaRepositorioJpa categoriaRepositorioJpa;
 
     @NotNull(message = "A sigla do curso é obrigatória")

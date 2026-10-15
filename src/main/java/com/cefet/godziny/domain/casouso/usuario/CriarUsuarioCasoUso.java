@@ -1,7 +1,6 @@
 package com.cefet.godziny.domain.casouso.usuario;
 
 import java.time.LocalDateTime;
-import org.springframework.beans.factory.annotation.Autowired;
 import com.cefet.godziny.api.usuario.UsuarioDto;
 import com.cefet.godziny.constantes.usuario.EnumRecursos;
 import com.cefet.godziny.infraestrutura.exceptions.usuario.CriarUsuarioAdmComCursoException;
@@ -40,10 +39,8 @@ public class CriarUsuarioCasoUso {
     @NotNull(message = "O tipo do usuário é obrigatório")
     private EnumRecursos tipo;
 
-    @Autowired
     private final UsuarioRepositorioJpa usuarioRepositorioJpa;
 
-    @Autowired
     private final CursoRepositorioJpa cursoRepositorioJpa;
 
     public void validarCriacao() throws Exception {

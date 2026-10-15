@@ -3,7 +3,6 @@ package com.cefet.godziny.infraestrutura.rest.curso;
 import jakarta.transaction.Transactional;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
@@ -28,13 +27,10 @@ import com.cefet.godziny.infraestrutura.persistencia.usuario.UsuarioRepositorioJ
 @RequiredArgsConstructor
 public class CursoControle implements ICursoApi{
 
-    @Autowired
     private final CursoRepositorioJpa cursoRepositorioJpa;
 
-    @Autowired
     private final UsuarioRepositorioJpa usuarioRepositorioJpa;
 
-    @Autowired
     private final CategoriaRepositorioJpa categoriaRepositorioJpa;
 
     @Override

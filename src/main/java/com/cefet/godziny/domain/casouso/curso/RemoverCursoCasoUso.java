@@ -1,6 +1,5 @@
 package com.cefet.godziny.domain.casouso.curso;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -17,13 +16,10 @@ import lombok.*;
 @AllArgsConstructor
 public class RemoverCursoCasoUso {
 
-    @Autowired
     private final CursoRepositorioJpa cursoRepositorioJpa;
 
-    @Autowired
     private final UsuarioRepositorioJpa usuarioRepositorioJpa;
 
-    @Autowired
     private final CategoriaRepositorioJpa categoriaRepositorioJpa;
 
     @NotNull(message = "A sigla do curso é obrigatória")
