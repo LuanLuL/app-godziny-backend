@@ -150,9 +150,6 @@ class CategoriaControleTest {
         when(cursoRepositorioJpa.findBySigla(SIGLA_CURSO))
             .thenReturn(cursoEntidade);
 
-        when(categoriaRepositorioJpa.findById(ID))
-            .thenReturn(categoriaEntidade);
-
         when(categoriaRepositorioJpa.updateCategoria(
             org.mockito.ArgumentMatchers.any(CategoriaEntidade.class)
         )).thenReturn(ID);
