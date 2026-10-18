@@ -29,7 +29,6 @@ public class RemoverCategoriaCasoUso {
         if(!userContext.getTipo().equals(EnumRecursos.ADM)){
             throw new UsuarioNaoAutorizadoException();
         }
-
         CategoriaEntidade categoria = categoriaRepositorioJpa.findById(this.id);
         if(!(atividadeRepositorioJpa.findByCategoria(categoria).isEmpty())){
             throw new RemoverCategoriaComAtividadesException();

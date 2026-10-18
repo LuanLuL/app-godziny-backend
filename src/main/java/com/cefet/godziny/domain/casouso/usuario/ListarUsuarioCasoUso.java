@@ -1,6 +1,11 @@
 package com.cefet.godziny.domain.casouso.usuario;
 
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+
 import com.cefet.godziny.api.usuario.UsuarioRecuperarDto;
+import com.cefet.godziny.constantes.usuario.EnumRecursos;
+import com.cefet.godziny.infraestrutura.exceptions.UsuarioNaoAutorizadoException;
 import com.cefet.godziny.infraestrutura.persistencia.usuario.UsuarioEntidade;
 import com.cefet.godziny.infraestrutura.persistencia.usuario.UsuarioRepositorioJpa;
 import com.cefet.godziny.infraestrutura.rest.curso.CursoRestConverter;
@@ -15,6 +20,11 @@ public class ListarUsuarioCasoUso {
     private Integer matricula;
 
     public UsuarioRecuperarDto validarListagem() throws Exception {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        UsuarioEntidade userContext = (UsuarioEntidade) authentication.getPrincipal();
+        if(!userContext.getTipo().equals(EnumRecursos.ADM)){
+            throw new UsuarioNaoAutorizadoException();
+        }
         UsuarioEntidade usuarioEntidade = usuarioRepositorioJpa.findById(matricula);
         return createUsuarioRecuperarDto(usuarioEntidade);
     }

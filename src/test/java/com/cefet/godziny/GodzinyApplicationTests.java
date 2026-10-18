@@ -1,14 +1,27 @@
 package com.cefet.godziny;
 
-import org.junit.jupiter.api.Test;
-import org.springframework.boot.test.context.SpringBootTest;
+import static org.mockito.Mockito.mockStatic;
 
-@SpringBootTest
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+import org.mockito.MockedStatic;
+import org.springframework.boot.SpringApplication;
+
 class GodzinyApplicationTests {
 
-	@Test
-	void main() {
-		GodzinyApplication.main(new String[] {});
-	}
+    @Test
+    @DisplayName("Should start the application through the main method")
+    void shouldCallSpringApplicationRun() {
+        String[] args = {};
 
+        try (MockedStatic<SpringApplication> springApplication =
+                 mockStatic(SpringApplication.class)) {
+
+            GodzinyApplication.main(args);
+
+            springApplication.verify(
+                () -> SpringApplication.run(GodzinyApplication.class, args)
+            );
+        }
+    }
 }

@@ -2,8 +2,12 @@ package com.cefet.godziny.domain.casouso.usuario;
 
 import java.time.LocalDateTime;
 import org.springframework.lang.Nullable;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+
 import com.cefet.godziny.api.usuario.UsuarioDto;
 import com.cefet.godziny.constantes.usuario.EnumRecursos;
+import com.cefet.godziny.infraestrutura.exceptions.UsuarioNaoAutorizadoException;
 import com.cefet.godziny.infraestrutura.exceptions.usuario.CriarUsuarioAdmComCursoException;
 import com.cefet.godziny.infraestrutura.exceptions.usuario.CriarUsuarioEmailRepetidoException;
 import com.cefet.godziny.infraestrutura.exceptions.usuario.CriarUsuarioIncompletoException;
@@ -47,6 +51,11 @@ public class AtualizarUsuarioCasoUso {
     private final CursoRepositorioJpa cursoRepositorioJpa;
 
     public void validarAtualizacao() throws Exception {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        UsuarioEntidade userContext = (UsuarioEntidade) authentication.getPrincipal();
+        if(!userContext.getTipo().equals(EnumRecursos.ADM)){
+            throw new UsuarioNaoAutorizadoException();
+        }
         if (this.nome.length() < 3 || this.nome.length() > 100) {
             throw new CriarUsuarioIncompletoException("O nome do usuário deve ter entre 3 e 100 caracteres");
         }

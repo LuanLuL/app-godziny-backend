@@ -29,7 +29,6 @@ public class ListarCategoriaCasoUso {
         if(!userContext.getTipo().equals(EnumRecursos.ADM)){
             throw new UsuarioNaoAutorizadoException();
         }
-
         CategoriaEntidade entidade = categoriaRepositorioJpa.findById(this.id);
         createCategoriaRecuperarDto(entidade);
         return CategoriaRestConverter.EntidadeToCategoriaRecuperarDto(entidade);

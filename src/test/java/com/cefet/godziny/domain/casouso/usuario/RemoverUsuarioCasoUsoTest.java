@@ -1,117 +1,195 @@
 package com.cefet.godziny.domain.casouso.usuario;
 
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.doNothing;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
-import java.time.LocalDateTime;
-import java.util.List;
-import java.util.UUID;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
-import org.mockito.Mock;
-import org.mockito.Mockito;
-import org.springframework.boot.test.context.SpringBootTest;
-import com.cefet.godziny.constantes.atividade.EnumStatus;
 import com.cefet.godziny.constantes.usuario.EnumRecursos;
+import com.cefet.godziny.infraestrutura.exceptions.UsuarioNaoAutorizadoException;
 import com.cefet.godziny.infraestrutura.exceptions.usuario.RemoverUsuarioComAtividadesException;
 import com.cefet.godziny.infraestrutura.persistencia.atividade.AtividadeEntidade;
 import com.cefet.godziny.infraestrutura.persistencia.atividade.AtividadeRepositorioJpa;
-import com.cefet.godziny.infraestrutura.persistencia.atividade.arquivo.ArquivoEntidade;
-import com.cefet.godziny.infraestrutura.persistencia.categoria.CategoriaEntidade;
 import com.cefet.godziny.infraestrutura.persistencia.curso.CursoEntidade;
 import com.cefet.godziny.infraestrutura.persistencia.usuario.UsuarioEntidade;
 import com.cefet.godziny.infraestrutura.persistencia.usuario.UsuarioRepositorioJpa;
 
-@SpringBootTest
-public class RemoverUsuarioCasoUsoTest {
-    
-    @Mock
-    private UsuarioEntidade entidade;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.context.SecurityContextHolder;
 
-    @Mock
-    UsuarioRepositorioJpa usuarioRepositorioJpa;
+import java.time.LocalDateTime;
+import java.util.Collections;
+import java.util.List;
+import java.util.UUID;
 
-    @Mock
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
+class RemoverUsuarioCasoUsoTest {
+
+    private static final Integer MATRICULA = 99999;
+
+    private UsuarioRepositorioJpa usuarioRepositorioJpa;
     private AtividadeRepositorioJpa atividadeRepositorioJpa;
 
     private RemoverUsuarioCasoUso removerUsuarioCasoUso;
 
     @BeforeEach
     void inicializarDados() {
-        removerUsuarioCasoUso = new RemoverUsuarioCasoUso(99999, usuarioRepositorioJpa, atividadeRepositorioJpa);
-    };
+        usuarioRepositorioJpa = mock(UsuarioRepositorioJpa.class);
+        atividadeRepositorioJpa = mock(AtividadeRepositorioJpa.class);
+
+        autenticarAdministrador();
+
+        removerUsuarioCasoUso = new RemoverUsuarioCasoUso(
+                MATRICULA,
+                usuarioRepositorioJpa,
+                atividadeRepositorioJpa
+        );
+    }
 
     @AfterEach
     void limparDados() {
-        usuarioRepositorioJpa.deleteAll();
+        SecurityContextHolder.clearContext();
+    }
+
+    private void autenticarAdministrador() {
+        UsuarioEntidade administrador = new UsuarioEntidade(
+                1,
+                null,
+                "Administrador",
+                "admin@teste.com.br",
+                "senha123",
+                EnumRecursos.ADM,
+                LocalDateTime.now()
+        );
+
+        UsernamePasswordAuthenticationToken authentication =
+                new UsernamePasswordAuthenticationToken(
+                        administrador,
+                        null,
+                        Collections.emptyList()
+                );
+
+        SecurityContextHolder.getContext()
+                .setAuthentication(authentication);
+    }
+
+    private void autenticarUsuarioNormal() {
+        UsuarioEntidade usuario = new UsuarioEntidade(
+                2,
+                null,
+                "Usuario Normal",
+                "usuario@teste.com.br",
+                "senha123",
+                EnumRecursos.NORMAL,
+                LocalDateTime.now()
+        );
+
+        UsernamePasswordAuthenticationToken authentication =
+                new UsernamePasswordAuthenticationToken(
+                        usuario,
+                        null,
+                        Collections.emptyList()
+                );
+
+        SecurityContextHolder.getContext()
+                .setAuthentication(authentication);
+    }
+
+    private UsuarioEntidade criarUsuarioEntidade() {
+        UsuarioEntidade administrador = new UsuarioEntidade(
+                99998,
+                null,
+                "Administrador do Curso",
+                "admincurso@teste.com.br",
+                "senha123",
+                EnumRecursos.ADM,
+                LocalDateTime.now()
+        );
+
+        CursoEntidade curso = new CursoEntidade(
+                UUID.randomUUID(),
+                "CURSO_ID_TESTE",
+                "TESTE",
+                100,
+                administrador
+        );
+
+        return new UsuarioEntidade(
+                MATRICULA,
+                curso,
+                "TESTE",
+                "teste@teste.com.br",
+                "teste123",
+                EnumRecursos.NORMAL,
+                LocalDateTime.now()
+        );
     }
 
     @Test
-    @DisplayName("Should delete an Usuario successfully")
-    void testRemoverUsuarioSuccess() throws Exception {
-        this.entidade = createUsuarioEntidade();
+    @DisplayName("Should validate and delete a user without activities successfully")
+    void deveRemoverUsuarioSemAtividadesComSucesso() throws Exception {
+        UsuarioEntidade usuario = criarUsuarioEntidade();
 
-        doNothing().when(usuarioRepositorioJpa).deleteUsuario(Mockito.anyInt());
-        removerUsuarioCasoUso.validarRemocao();
+        when(usuarioRepositorioJpa.findById(MATRICULA))
+                .thenReturn(usuario);
+
+        when(atividadeRepositorioJpa.findByUsuario(usuario))
+                .thenReturn(Collections.emptyList());
+
+        assertDoesNotThrow(
+                () -> removerUsuarioCasoUso.validarRemocao()
+        );
+
         removerUsuarioCasoUso.removerUsuario();
 
-        verify(usuarioRepositorioJpa, times(1)).deleteUsuario(Mockito.anyInt());
+        verify(usuarioRepositorioJpa).findById(MATRICULA);
+        verify(atividadeRepositorioJpa).findByUsuario(usuario);
+        verify(usuarioRepositorioJpa).deleteUsuario(MATRICULA);
     }
 
     @Test
-    @DisplayName("Try to delete an Usuario and return an excepiton because he has Atividades")
-    void testRemoverCursoCasoUsoExceptionCase1() throws Exception{
-        this.entidade = createUsuarioEntidade();
-        List<AtividadeEntidade> atividadeList = List.of(new AtividadeEntidade(
-            UUID.randomUUID(),
-            this.entidade,
-            new CategoriaEntidade(UUID.randomUUID(), createCursoEntidade(), "Categoria TESTE", 20, 2, "descrição TESTE"),
-            "nome atividade TESTE",
-            LocalDateTime.now(),
-            EnumStatus.APROVADA,
-            new ArquivoEntidade(UUID.randomUUID(), "nome TESTE", "tipo TESTE", "dado TESTE".getBytes()),
-            (float) 2.4,
-            "comentario TESTE"
-        ));
+    @DisplayName("Should reject deletion when the user has registered activities")
+    void deveRejeitarRemocaoDeUsuarioComAtividades() throws Exception {
+        UsuarioEntidade usuario = criarUsuarioEntidade();
 
-        when(usuarioRepositorioJpa.findById(Mockito.anyInt())).thenReturn(entidade);
-        when(atividadeRepositorioJpa.findByUsuario(Mockito.any(UsuarioEntidade.class))).thenReturn(atividadeList);
-        Exception thrown = assertThrows(RemoverUsuarioComAtividadesException.class, () -> {
-            removerUsuarioCasoUso.validarRemocao();
-        });
-        
-        assertThat(thrown).isNotNull();
-        assertThat(thrown.getMessage()).isEqualTo("Não é possível excluir um usuário que possui atividades cadastradas");
-    }
+        when(usuarioRepositorioJpa.findById(MATRICULA))
+                .thenReturn(usuario);
 
+        when(atividadeRepositorioJpa.findByUsuario(usuario))
+                .thenReturn(List.of(mock(AtividadeEntidade.class)));
 
-     private UsuarioEntidade createUsuarioEntidade(){
-        UsuarioEntidade entidade = new UsuarioEntidade(
-            999999, 
-            createCursoEntidade(),
-            "TESTE",
-            "teste@teste.com.br",
-            "teste123",
-            EnumRecursos.NORMAL,
-            LocalDateTime.now()
+        RemoverUsuarioComAtividadesException exception = assertThrows(
+                RemoverUsuarioComAtividadesException.class,
+                () -> removerUsuarioCasoUso.validarRemocao()
         );
-        return entidade;
+
+        assertThat(exception.getMessage())
+                .isEqualTo(
+                        "Não é possível excluir um usuário que possui atividades cadastradas"
+                );
     }
 
-    private CursoEntidade createCursoEntidade(){
-        CursoEntidade curso = new CursoEntidade(
-            UUID.randomUUID(),
-            "CURSO_ID_TESTE",
-            "TESTE",
-            100,
-            new UsuarioEntidade(99999, null, "nome TESTE", "teste@test.com", "senha TESTE", EnumRecursos.ADM, LocalDateTime.now())
+    @Test
+    @DisplayName("Should reject deletion by a non-administrator user")
+    void deveRejeitarRemocaoPorUsuarioNaoAdministrador() {
+        autenticarUsuarioNormal();
+
+        assertThrows(
+                UsuarioNaoAutorizadoException.class,
+                () -> removerUsuarioCasoUso.validarRemocao()
         );
-        return curso;
     }
 
+    @Test
+    @DisplayName("Should call the repository to delete the user")
+    void deveChamarRepositorioParaRemoverUsuario() throws Exception {
+        removerUsuarioCasoUso.removerUsuario();
+
+        verify(usuarioRepositorioJpa).deleteUsuario(MATRICULA);
+    }
 }

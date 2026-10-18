@@ -54,7 +54,6 @@ public class AtualizarCategoriaCasoUso {
         if(!userContext.getTipo().equals(EnumRecursos.ADM)){
             throw new UsuarioNaoAutorizadoException();
         }
-
         if (this.cursoSigla.length() < 3 || this.cursoSigla.length() > 20) {
             throw new CriarCategoriaIncompletaException("A sigla do curso na categoria deve ter entre 3 e 20 caracteres");
         }

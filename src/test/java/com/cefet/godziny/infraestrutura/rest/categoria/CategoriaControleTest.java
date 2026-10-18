@@ -1,14 +1,20 @@
 package com.cefet.godziny.infraestrutura.rest.categoria;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.when;
+
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.UUID;
+
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.Mockito;
-import org.mockito.MockitoAnnotations;
-import org.springframework.boot.test.context.SpringBootTest;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
@@ -16,6 +22,9 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.context.SecurityContextHolder;
+
 import com.cefet.godziny.api.categoria.CategoriaDto;
 import com.cefet.godziny.api.categoria.CategoriaFiltroDto;
 import com.cefet.godziny.api.categoria.CategoriaRecuperarDto;
@@ -26,32 +35,21 @@ import com.cefet.godziny.infraestrutura.persistencia.categoria.CategoriaReposito
 import com.cefet.godziny.infraestrutura.persistencia.curso.CursoEntidade;
 import com.cefet.godziny.infraestrutura.persistencia.curso.CursoRepositorioJpa;
 import com.cefet.godziny.infraestrutura.persistencia.usuario.UsuarioEntidade;
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.when;
-import java.time.LocalDateTime;
-import java.util.List;
-import java.util.UUID;
 
-@SpringBootTest
-public class CategoriaControleTest {
+@ExtendWith(MockitoExtension.class)
+class CategoriaControleTest {
+
     private static final UUID ID = UUID.randomUUID();
-    private static final CursoEntidade CURSO = new CursoEntidade(
-        UUID.randomUUID(),
-        "ENG_ELET_BH",
-        "Engenharia Elétrica",
-        500,
-        new UsuarioEntidade(99999, null, "nome TESTE", "teste@test.com", "senha TESTE", EnumRecursos.ADM, LocalDateTime.now())
-    );
+
+    private static final Integer MATRICULA_ADMIN = 99999;
+
     private static final String NOME = "Categoria Teste";
-    private static final float PORCENTAGEM_HORAS_MAXIMAS = (float) 0.5;
-    private static final float HORAS_MULTIPLICADOR = (float) 0.1;
     private static final String DESCRICAO = "Categoria Descrição Teste";
+    private static final String SIGLA_CURSO = "ENG_ELET_BH";
+    private static final String NOME_CURSO = "Engenharia Elétrica";
 
-    private CategoriaEntidade entidade;
-    private CategoriaDto dto;
-
-    @InjectMocks
-    private CategoriaControle controler;
+    private static final float PORCENTAGEM_HORAS_MAXIMAS = 0.5f;
+    private static final float HORAS_MULTIPLICADOR = 0.1f;
 
     @Mock
     private CategoriaRepositorioJpa categoriaRepositorioJpa;
@@ -62,107 +60,176 @@ public class CategoriaControleTest {
     @Mock
     private AtividadeRepositorioJpa atividadeRepositorioJpa;
 
+    @InjectMocks
+    private CategoriaControle controller;
+
+    private UsuarioEntidade administrador;
+    private CursoEntidade cursoEntidade;
+    private CategoriaEntidade categoriaEntidade;
+    private CategoriaDto categoriaDto;
+
     @BeforeEach
     void inicializarDados() {
-        MockitoAnnotations.openMocks(this);
-        controler = new CategoriaControle(categoriaRepositorioJpa, cursoRepositorioJpa, atividadeRepositorioJpa);
-    };
+        administrador = criarAdministrador();
+        configurarAutenticacao(administrador);
+
+        cursoEntidade = criarCursoEntidade();
+        categoriaEntidade = criarCategoriaEntidade();
+        categoriaDto = criarCategoriaDto();
+    }
 
     @AfterEach
     void limparDados() {
-        this.entidade = null;
-        this.dto = null;
-
-        categoriaRepositorioJpa.deleteAll();
-        cursoRepositorioJpa.deleteAll();
+        SecurityContextHolder.clearContext();
     }
 
     @Test
-    @DisplayName("Should search a Categoria by Id successfully")
-    void testGetCategoriaSuccess() throws Exception {
-        this.entidade = createCategoriaEntidade();
+    @DisplayName("Should retrieve a category by ID successfully")
+    void deveBuscarCategoriaPorIdComSucesso() throws Exception {
+        when(categoriaRepositorioJpa.findById(ID))
+            .thenReturn(categoriaEntidade);
 
-        when(categoriaRepositorioJpa.findById(Mockito.any(UUID.class))).thenReturn(entidade);
-        ResponseEntity<CategoriaRecuperarDto> response = controler.getCategoria(ID);
+        ResponseEntity<CategoriaRecuperarDto> response =
+            controller.getCategoria(ID);
 
-        assertThat(response.getBody()).isInstanceOf(CategoriaRecuperarDto.class);
         assertThat(response).isNotNull();
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(response.getBody()).isNotNull();
+        assertThat(response.getBody())
+            .isInstanceOf(CategoriaRecuperarDto.class);
     }
 
-    @SuppressWarnings({ "null", "unchecked" })
+    @SuppressWarnings("unchecked")
     @Test
-    @DisplayName("Should search all Categorias successfully")
-    void testPesquisarCategoriasSuccess() throws Exception {
-        this.entidade = createCategoriaEntidade();
+    @DisplayName("Should search categories successfully")
+    void devePesquisarCategoriasComSucesso() throws Exception {
         CategoriaFiltroDto filtroDto = new CategoriaFiltroDto();
-        Page<CategoriaEntidade> page = new PageImpl<>(List.of(entidade));
+
+        Page<CategoriaEntidade> page =
+            new PageImpl<>(List.of(categoriaEntidade));
+
         Pageable pageable = PageRequest.of(0, 10);
 
-        when(categoriaRepositorioJpa.listCategorias(Mockito.any(Specification.class), Mockito.any(Pageable.class))).thenReturn(page);
-        ResponseEntity<Page<CategoriaRecuperarDto>> response = controler.pesquisarCategorias(pageable, filtroDto);
+        when(categoriaRepositorioJpa.listCategorias(
+            org.mockito.ArgumentMatchers.any(Specification.class),
+            org.mockito.ArgumentMatchers.eq(pageable)
+        )).thenReturn(page);
+
+        ResponseEntity<Page<CategoriaRecuperarDto>> response =
+            controller.pesquisarCategorias(pageable, filtroDto);
 
         assertThat(response).isNotNull();
-        assertThat(response.getBody()).isNotNull();
-        assertThat(response.getBody().getContent()).hasSizeGreaterThan(0); 
-        assertThat(response.getBody().getSize()).isNotNull();
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(response.getBody()).isNotNull();
+        assertThat(response.getBody().getContent()).hasSize(1);
     }
 
     @Test
-    @DisplayName("Should create a new Categoria successfully")
-    void testCreateCategoriaSuccess() throws Exception {
-        this.dto = createCategoriaDto();
+    @DisplayName("Should create a category successfully")
+    void deveCriarCategoriaComSucesso() throws Exception {
+        when(cursoRepositorioJpa.findBySigla(SIGLA_CURSO))
+            .thenReturn(cursoEntidade);
 
-        when(categoriaRepositorioJpa.createCategoria(Mockito.any(CategoriaEntidade.class))).thenReturn(ID);
-        ResponseEntity<UUID> response = controler.createCategoria(dto);
+        when(categoriaRepositorioJpa.createCategoria(
+            org.mockito.ArgumentMatchers.any(CategoriaEntidade.class)
+        )).thenReturn(ID);
 
-        assertThat(response.getBody()).isInstanceOf(UUID.class);
+        ResponseEntity<UUID> response =
+            controller.createCategoria(categoriaDto);
+
         assertThat(response).isNotNull();
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CREATED);
+        assertThat(response.getBody()).isEqualTo(ID);
     }
 
     @Test
-    @DisplayName("Should update an existing Categoria successfully")
-    void testupdateCategoriaSuccess() throws Exception {
-        this.entidade = createCategoriaEntidade();
-        this.dto = createCategoriaDto();
-        dto.setNome("Engnharia Elétrica Atualizada");
+    @DisplayName("Should update an existing category successfully")
+    void deveAtualizarCategoriaComSucesso() throws Exception {
+        categoriaDto.setNome("Engenharia Elétrica Atualizada");
 
-        when(categoriaRepositorioJpa.updateCategoria(Mockito.any(CategoriaEntidade.class))).thenReturn(ID);
-        when(categoriaRepositorioJpa.findById(Mockito.any(UUID.class))).thenReturn(entidade);
-        ResponseEntity<UUID> response = controler.updateCategoria(ID, dto);
+        when(cursoRepositorioJpa.findBySigla(SIGLA_CURSO))
+            .thenReturn(cursoEntidade);
 
-        assertThat(response.getBody()).isInstanceOf(UUID.class);
+        when(categoriaRepositorioJpa.findById(ID))
+            .thenReturn(categoriaEntidade);
+
+        when(categoriaRepositorioJpa.updateCategoria(
+            org.mockito.ArgumentMatchers.any(CategoriaEntidade.class)
+        )).thenReturn(ID);
+
+        ResponseEntity<UUID> response =
+            controller.updateCategoria(ID, categoriaDto);
+
         assertThat(response).isNotNull();
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(response.getBody()).isEqualTo(ID);
     }
 
     @Test
-    @DisplayName("Should delete a Categoria successfully")
-    void testRemoveCategoriaSuccess() throws Exception {
-        this.entidade = createCategoriaEntidade();
+    @DisplayName("Should remove a category successfully")
+    void deveRemoverCategoriaComSucesso() throws Exception {
+        when(categoriaRepositorioJpa.findById(ID))
+            .thenReturn(categoriaEntidade);
 
-        when(categoriaRepositorioJpa.findById(Mockito.any(UUID.class))).thenReturn(entidade);
-        ResponseEntity<Void> response = controler.removeCategoria(ID);
+        ResponseEntity<Void> response =
+            controller.removeCategoria(ID);
 
         assertThat(response).isNotNull();
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(response.getBody()).isNull();
     }
 
-    private CategoriaEntidade createCategoriaEntidade(){
-        CategoriaEntidade categoria = new CategoriaEntidade(ID, CURSO, NOME, PORCENTAGEM_HORAS_MAXIMAS, HORAS_MULTIPLICADOR, DESCRICAO);
-        return categoria;
+    private UsuarioEntidade criarAdministrador() {
+        return new UsuarioEntidade(
+            MATRICULA_ADMIN,
+            null,
+            "Administrador Teste",
+            "admin@test.com",
+            "senha_teste",
+            EnumRecursos.ADM,
+            LocalDateTime.now()
+        );
     }
-    private CategoriaDto createCategoriaDto(){
-        CategoriaDto categoria = new CategoriaDto();
-        categoria.setId(ID);
-        categoria.setCursoSigla(CURSO.getSigla());
-        categoria.setNome(NOME);
-        categoria.setPorcentagemHorasMaximas(PORCENTAGEM_HORAS_MAXIMAS);
-        categoria.setHorasMultiplicador(HORAS_MULTIPLICADOR);
-        categoria.setDescricao(DESCRICAO);
-        return categoria;
+
+    private CursoEntidade criarCursoEntidade() {
+        return new CursoEntidade(
+            UUID.randomUUID(),
+            SIGLA_CURSO,
+            NOME_CURSO,
+            500,
+            administrador
+        );
+    }
+
+    private CategoriaEntidade criarCategoriaEntidade() {
+        return new CategoriaEntidade(
+            ID,
+            cursoEntidade,
+            NOME,
+            PORCENTAGEM_HORAS_MAXIMAS,
+            HORAS_MULTIPLICADOR,
+            DESCRICAO
+        );
+    }
+
+    private CategoriaDto criarCategoriaDto() {
+        CategoriaDto dto = new CategoriaDto();
+
+        dto.setId(ID);
+        dto.setCursoSigla(SIGLA_CURSO);
+        dto.setNome(NOME);
+        dto.setPorcentagemHorasMaximas(PORCENTAGEM_HORAS_MAXIMAS);
+        dto.setHorasMultiplicador(HORAS_MULTIPLICADOR);
+        dto.setDescricao(DESCRICAO);
+
+        return dto;
+    }
+
+    private void configurarAutenticacao(UsuarioEntidade usuario) {
+        var authentication =
+            new UsernamePasswordAuthenticationToken(usuario, null);
+
+        SecurityContextHolder.getContext()
+            .setAuthentication(authentication);
     }
 }
-
