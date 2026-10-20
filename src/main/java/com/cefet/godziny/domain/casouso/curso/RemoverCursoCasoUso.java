@@ -3,6 +3,11 @@ package com.cefet.godziny.domain.casouso.curso;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+
+import com.cefet.godziny.constantes.usuario.EnumRecursos;
+import com.cefet.godziny.infraestrutura.exceptions.UsuarioNaoAutorizadoException;
 import com.cefet.godziny.infraestrutura.exceptions.curso.RemoverCursoComCategoriasException;
 import com.cefet.godziny.infraestrutura.exceptions.curso.RemoverCursoComUsuariosException;
 import com.cefet.godziny.infraestrutura.persistencia.categoria.CategoriaRepositorioJpa;
@@ -26,6 +31,11 @@ public class RemoverCursoCasoUso {
     private String sigla;
 
     public void validarRemocao() throws Exception {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        UsuarioEntidade userContext = (UsuarioEntidade) authentication.getPrincipal();
+        if(!userContext.getTipo().equals(EnumRecursos.ADM)){
+            throw new UsuarioNaoAutorizadoException();
+        }
         CursoEntidade curso = cursoRepositorioJpa.findBySigla(this.sigla);
         Pageable pageable = PageRequest.of(0, 1);
         Page<UsuarioEntidade> usuariosDoCurso = usuarioRepositorioJpa.listUsuariosByCurso(pageable, curso);

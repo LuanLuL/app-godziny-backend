@@ -1,24 +1,30 @@
 package com.cefet.godziny.domain.casouso.curso;
 
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.mockito.Mockito.times;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
+
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
-import static org.assertj.core.api.Assertions.assertThat;
+
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.Mockito;
-import org.springframework.boot.test.context.SpringBootTest;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.context.SecurityContextHolder;
+
 import com.cefet.godziny.constantes.usuario.EnumRecursos;
+import com.cefet.godziny.infraestrutura.exceptions.UsuarioNaoAutorizadoException;
 import com.cefet.godziny.infraestrutura.exceptions.curso.RemoverCursoComCategoriasException;
 import com.cefet.godziny.infraestrutura.exceptions.curso.RemoverCursoComUsuariosException;
 import com.cefet.godziny.infraestrutura.persistencia.categoria.CategoriaEntidade;
@@ -28,121 +34,211 @@ import com.cefet.godziny.infraestrutura.persistencia.curso.CursoRepositorioJpa;
 import com.cefet.godziny.infraestrutura.persistencia.usuario.UsuarioEntidade;
 import com.cefet.godziny.infraestrutura.persistencia.usuario.UsuarioRepositorioJpa;
 
-@SpringBootTest
-public class RemoverCursoCasoUsoTest {
-    
-    private CursoEntidade entidade;
+@ExtendWith(MockitoExtension.class)
+class RemoverCursoCasoUsoTest {
+
+    private static final String SIGLA_CURSO = "TESTE";
+    private static final Integer MATRICULA_ADMIN = 99999;
 
     @Mock
-    CursoRepositorioJpa cursoRepositorioJpa;
+    private CursoRepositorioJpa cursoRepositorioJpa;
 
     @Mock
-    UsuarioRepositorioJpa usuarioRepositorioJpa;
+    private UsuarioRepositorioJpa usuarioRepositorioJpa;
 
     @Mock
-    CategoriaRepositorioJpa categoriaRepositorioJpa;
+    private CategoriaRepositorioJpa categoriaRepositorioJpa;
 
     private RemoverCursoCasoUso removerCursoCasoUso;
 
+    private UsuarioEntidade administrador;
+    private CursoEntidade cursoEntidade;
+
     @BeforeEach
     void inicializarDados() {
-        removerCursoCasoUso = new RemoverCursoCasoUso(cursoRepositorioJpa, usuarioRepositorioJpa, categoriaRepositorioJpa, "TESTE");
-    };
+        administrador = criarAdministrador();
+        configurarAutenticacao(administrador);
+
+        cursoEntidade = criarCursoEntidade();
+
+        removerCursoCasoUso = new RemoverCursoCasoUso(
+            cursoRepositorioJpa,
+            usuarioRepositorioJpa,
+            categoriaRepositorioJpa,
+            SIGLA_CURSO
+        );
+    }
 
     @AfterEach
     void limparDados() {
-        cursoRepositorioJpa.deleteAll();
-        usuarioRepositorioJpa.deleteAll();
-        categoriaRepositorioJpa.deleteAll();
+        SecurityContextHolder.clearContext();
     }
-    
 
     @Test
-    @DisplayName("Should delete a Curso successfully")
-    void testRemoverCursoSuccess() throws Exception {
-        this.entidade = new CursoEntidade(
-            UUID.randomUUID(),
-            "TESTE",
-            "TESTE_TESTE",
-            100,
-            new UsuarioEntidade(99999, null, "nome TESTE", "teste@test.com", "senha TESTE", EnumRecursos.ADM, LocalDateTime.now())
-        );
-        Page<UsuarioEntidade> pageUsers = new PageImpl<>(List.of());
-        List<CategoriaEntidade> listCategoria = List.of();
+    @DisplayName("Should validate and remove a course successfully")
+    void deveValidarERemoverCursoComSucesso() throws Exception {
+        when(cursoRepositorioJpa.findBySigla(SIGLA_CURSO))
+            .thenReturn(cursoEntidade);
 
-        when(cursoRepositorioJpa.findBySigla(Mockito.anyString())).thenReturn(entidade);
-        when(usuarioRepositorioJpa.listUsuariosByCurso(Mockito.any(Pageable.class), Mockito.any(CursoEntidade.class))).thenReturn(pageUsers);
-        when(categoriaRepositorioJpa.findByCurso(Mockito.any(CursoEntidade.class))).thenReturn(listCategoria);
+        when(usuarioRepositorioJpa.listUsuariosByCurso(
+            org.mockito.ArgumentMatchers.any(Pageable.class),
+            org.mockito.ArgumentMatchers.eq(cursoEntidade)
+        )).thenReturn(new PageImpl<>(List.of()));
+
+        when(categoriaRepositorioJpa.findByCurso(cursoEntidade))
+            .thenReturn(List.of());
+
         removerCursoCasoUso.validarRemocao();
         removerCursoCasoUso.removerCurso();
 
-        verify(cursoRepositorioJpa, times(1)).findBySigla(Mockito.anyString());
-        verify(usuarioRepositorioJpa, times(1)).listUsuariosByCurso(Mockito.any(Pageable.class), Mockito.any(CursoEntidade.class));
-        verify(cursoRepositorioJpa, times(1)).deleteCurso(Mockito.anyString());
+        verify(cursoRepositorioJpa).findBySigla(SIGLA_CURSO);
+        verify(usuarioRepositorioJpa).listUsuariosByCurso(
+            org.mockito.ArgumentMatchers.any(Pageable.class),
+            org.mockito.ArgumentMatchers.eq(cursoEntidade)
+        );
+        verify(categoriaRepositorioJpa).findByCurso(cursoEntidade);
+        verify(cursoRepositorioJpa).deleteCurso(SIGLA_CURSO);
     }
 
     @Test
-    @DisplayName("Try to delete a Curso and return an excepiton because exists users inside it")
-    void testRemoverCursoCasoUsoExceptionCase1() throws Exception{
-        this.entidade = new CursoEntidade(
-            UUID.randomUUID(),
-            "TESTE",
-            "TESTE_TESTE",
-            100,
-            new UsuarioEntidade(99999, null, "nome TESTE", "teste@test.com", "senha TESTE", EnumRecursos.ADM, LocalDateTime.now())
-        );
-        List<UsuarioEntidade> userList = List.of(new UsuarioEntidade(
-            9999999,
-            entidade,
-            "Teste", 
-            "teste@teste.com",
-            "teste",
+    @DisplayName("Should throw an exception when the course has enrolled users")
+    void deveLancarExcecaoQuandoCursoPossuirUsuarios() throws Exception {
+        UsuarioEntidade usuario = new UsuarioEntidade(
+            12345,
+            cursoEntidade,
+            "Usuário Teste",
+            "usuario@teste.com",
+            "senha_teste",
             EnumRecursos.NORMAL,
             LocalDateTime.now()
-        ));
-        Page<UsuarioEntidade> pageUsers = new PageImpl<>(userList);
-        List<CategoriaEntidade> listCategoria = List.of();
+        );
 
-        when(cursoRepositorioJpa.findBySigla(Mockito.anyString())).thenReturn(entidade);
-        when(usuarioRepositorioJpa.listUsuariosByCurso(Mockito.any(Pageable.class), Mockito.any(CursoEntidade.class))).thenReturn(pageUsers);
-        when(categoriaRepositorioJpa.findByCurso(Mockito.any(CursoEntidade.class))).thenReturn(listCategoria);
-        Exception thrown = assertThrows(RemoverCursoComUsuariosException.class, () -> {
-            removerCursoCasoUso.validarRemocao();
-        });
-        
-        assertThat(thrown).isNotNull();
-        assertThat(thrown.getMessage()).isEqualTo("Não é possível excluir um curso que possui usuários matriculados");
+        Page<UsuarioEntidade> usuarios =
+            new PageImpl<>(List.of(usuario));
+
+        when(cursoRepositorioJpa.findBySigla(SIGLA_CURSO))
+            .thenReturn(cursoEntidade);
+
+        when(usuarioRepositorioJpa.listUsuariosByCurso(
+            org.mockito.ArgumentMatchers.any(Pageable.class),
+            org.mockito.ArgumentMatchers.eq(cursoEntidade)
+        )).thenReturn(usuarios);
+ 
+        assertThatThrownBy(() -> removerCursoCasoUso.validarRemocao())
+            .isInstanceOf(RemoverCursoComUsuariosException.class)
+            .hasMessage(
+                "Não é possível excluir um curso que possui usuários matriculados"
+            );
+
+        verify(cursoRepositorioJpa).findBySigla(SIGLA_CURSO);
+        verify(usuarioRepositorioJpa).listUsuariosByCurso(
+            org.mockito.ArgumentMatchers.any(Pageable.class),
+            org.mockito.ArgumentMatchers.eq(cursoEntidade)
+        );
+        verify(categoriaRepositorioJpa, never()).findByCurso(
+            org.mockito.ArgumentMatchers.any(CursoEntidade.class)
+        );
+        verify(cursoRepositorioJpa, never()).deleteCurso(SIGLA_CURSO);
     }
 
+    @Test
+    @DisplayName("Should throw an exception when the course has categories")
+    void deveLancarExcecaoQuandoCursoPossuirCategorias() throws Exception {
+        CategoriaEntidade categoria = new CategoriaEntidade(
+            UUID.randomUUID(),
+            cursoEntidade,
+            "CATEGORIA_TESTE",
+            0.5f,
+            1.0f,
+            "Descrição de teste"
+        );
+
+        when(cursoRepositorioJpa.findBySigla(SIGLA_CURSO))
+            .thenReturn(cursoEntidade);
+
+        when(usuarioRepositorioJpa.listUsuariosByCurso(
+            org.mockito.ArgumentMatchers.any(Pageable.class),
+            org.mockito.ArgumentMatchers.eq(cursoEntidade)
+        )).thenReturn(new PageImpl<>(List.of()));
+
+        when(categoriaRepositorioJpa.findByCurso(cursoEntidade))
+            .thenReturn(List.of(categoria));
+ 
+        assertThatThrownBy(() -> removerCursoCasoUso.validarRemocao())
+            .isInstanceOf(RemoverCursoComCategoriasException.class)
+            .hasMessage(
+                "Não é possível excluir um curso que possui categorias cadastradas"
+            );
+
+        verify(cursoRepositorioJpa).findBySigla(SIGLA_CURSO);
+        verify(usuarioRepositorioJpa).listUsuariosByCurso(
+            org.mockito.ArgumentMatchers.any(Pageable.class),
+            org.mockito.ArgumentMatchers.eq(cursoEntidade)
+        );
+        verify(categoriaRepositorioJpa).findByCurso(cursoEntidade);
+        verify(cursoRepositorioJpa, never()).deleteCurso(SIGLA_CURSO);
+    }
 
     @Test
-    @DisplayName("Try to delete a Curso and return an excepiton because exists categorias inside it")
-    void testRemoverCursoCasoUsoExceptionCase2() throws Exception{
-        this.entidade = new CursoEntidade(
-            UUID.randomUUID(),
-            "TESTE",
-            "TESTE_TESTE",
-            100,
-            new UsuarioEntidade(99999, null, "nome TESTE", "teste@test.com", "senha TESTE", EnumRecursos.ADM, LocalDateTime.now())
+    @DisplayName("Should reject course removal when the user is not an administrator")
+    void deveRejeitarRemocaoQuandoUsuarioNaoForAdministrador() {
+        UsuarioEntidade usuarioNormal = new UsuarioEntidade(
+            12345,
+            null,
+            "Usuário Normal",
+            "normal@teste.com",
+            "senha_teste",
+            EnumRecursos.NORMAL,
+            LocalDateTime.now()
         );
-        Page<UsuarioEntidade> pageUsers = new PageImpl<>(List.of());
-        List<CategoriaEntidade> listCategoria = List.of(new CategoriaEntidade(
-            UUID.randomUUID(),
-            entidade,
-            "CATEGORIA_TESTE",
-            (float) 0.5,
-            (float) 1.0,
-            "DESCRIICAO_TESTE"
-        ));
 
-        when(cursoRepositorioJpa.findBySigla(Mockito.anyString())).thenReturn(entidade);
-        when(usuarioRepositorioJpa.listUsuariosByCurso(Mockito.any(Pageable.class), Mockito.any(CursoEntidade.class))).thenReturn(pageUsers);
-        when(categoriaRepositorioJpa.findByCurso(Mockito.any(CursoEntidade.class))).thenReturn(listCategoria);
-        Exception thrown = assertThrows(RemoverCursoComCategoriasException.class, () -> {
-            removerCursoCasoUso.validarRemocao();
-        });
-        
-        assertThat(thrown).isNotNull();
-        assertThat(thrown.getMessage()).isEqualTo("Não é possível excluir um curso que possui categorias cadastradas");
+        configurarAutenticacao(usuarioNormal);
+ 
+        assertThatThrownBy(() -> removerCursoCasoUso.validarRemocao())
+            .isInstanceOf(UsuarioNaoAutorizadoException.class);
+
+        verifyNoInteractions(
+            cursoRepositorioJpa,
+            usuarioRepositorioJpa,
+            categoriaRepositorioJpa
+        );
+    }
+
+    @Test
+    @DisplayName("Should remove a course by its registration code")
+    void deveRemoverCursoPelaSigla() throws Exception {
+        removerCursoCasoUso.removerCurso();
+
+        verify(cursoRepositorioJpa).deleteCurso(SIGLA_CURSO);
+    }
+
+    private UsuarioEntidade criarAdministrador() {
+        return new UsuarioEntidade(
+            MATRICULA_ADMIN,
+            null,
+            "Administrador Teste",
+            "admin@teste.com",
+            "senha_admin",
+            EnumRecursos.ADM,
+            LocalDateTime.now()
+        );
+    }
+
+    private CursoEntidade criarCursoEntidade() {
+        return new CursoEntidade(
+            UUID.randomUUID(),
+            SIGLA_CURSO,
+            "Curso de Teste",
+            100,
+            administrador
+        );
+    }
+
+    private void configurarAutenticacao(UsuarioEntidade usuario) {
+        var authentication =
+            new UsernamePasswordAuthenticationToken(usuario, null);
+
+        SecurityContextHolder.getContext()
+            .setAuthentication(authentication);
     }
 }

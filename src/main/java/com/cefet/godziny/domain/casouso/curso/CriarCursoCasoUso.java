@@ -1,9 +1,14 @@
 package com.cefet.godziny.domain.casouso.curso;
 
 import java.util.Optional;
+
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+
 import com.cefet.godziny.api.curso.CursoDto;
 import com.cefet.godziny.constantes.usuario.EnumRecursos;
 import com.cefet.godziny.infraestrutura.exceptions.CampoRepetidoNoBancoException;
+import com.cefet.godziny.infraestrutura.exceptions.UsuarioNaoAutorizadoException;
 import com.cefet.godziny.infraestrutura.exceptions.curso.CriarCursoComUsuarioNormalException;
 import com.cefet.godziny.infraestrutura.exceptions.curso.CriarCursoIncompletoException;
 import com.cefet.godziny.infraestrutura.persistencia.curso.CursoEntidade;
@@ -36,6 +41,11 @@ public class CriarCursoCasoUso {
     private Integer coordenador_matricula;
 
     public UsuarioEntidade validarCriacao() throws Exception {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        UsuarioEntidade userContext = (UsuarioEntidade) authentication.getPrincipal();
+        if(!userContext.getTipo().equals(EnumRecursos.ADM)){
+            throw new UsuarioNaoAutorizadoException();
+        }
         if (sigla.length() < 3 || sigla.length() > 20) {
             throw new CriarCursoIncompletoException("A sigla do curso deve ter entre 3 e 20 caracteres");
         }

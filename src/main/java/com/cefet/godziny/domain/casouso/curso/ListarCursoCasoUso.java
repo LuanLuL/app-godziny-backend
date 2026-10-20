@@ -1,9 +1,15 @@
 package com.cefet.godziny.domain.casouso.curso;
 
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+
 import com.cefet.godziny.api.curso.CursoDto;
 import com.cefet.godziny.api.curso.CursoRecuperarDto;
+import com.cefet.godziny.constantes.usuario.EnumRecursos;
+import com.cefet.godziny.infraestrutura.exceptions.UsuarioNaoAutorizadoException;
 import com.cefet.godziny.infraestrutura.persistencia.curso.CursoEntidade;
 import com.cefet.godziny.infraestrutura.persistencia.curso.CursoRepositorioJpa;
+import com.cefet.godziny.infraestrutura.persistencia.usuario.UsuarioEntidade;
 import com.cefet.godziny.infraestrutura.rest.usuario.UsuarioRestConverter;
 import jakarta.validation.constraints.NotNull;
 import lombok.*;
@@ -16,6 +22,11 @@ public class ListarCursoCasoUso {
     private String sigla;
 
     public CursoRecuperarDto validarListagem() throws Exception {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        UsuarioEntidade userContext = (UsuarioEntidade) authentication.getPrincipal();
+        if(!userContext.getTipo().equals(EnumRecursos.ADM)){
+            throw new UsuarioNaoAutorizadoException();
+        }
         CursoEntidade entidade = cursoRepositorioJpa.findBySigla(this.sigla);
         createCursoDto(entidade);
         return createCursoRecuperarDto(entidade);
