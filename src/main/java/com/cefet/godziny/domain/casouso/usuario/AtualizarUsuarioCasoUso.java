@@ -1,7 +1,6 @@
 package com.cefet.godziny.domain.casouso.usuario;
 
 import java.time.LocalDateTime;
-import org.springframework.lang.Nullable;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 
@@ -37,7 +36,6 @@ public class AtualizarUsuarioCasoUso {
     @NotNull(message = "A senha do usuário é obrigatória")
     private String senha;
 
-    @Nullable()
     private String cursoSigla;
 
     @NotNull(message = "A data de criaçao do usuário é obrigatória")

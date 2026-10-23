@@ -3,7 +3,6 @@ package com.cefet.godziny.api.usuario;
 import jakarta.validation.constraints.NotNull;
 import java.time.LocalDateTime;
 import org.springframework.format.annotation.DateTimeFormat;
-import org.springframework.lang.Nullable;
 import com.cefet.godziny.constantes.usuario.EnumRecursos;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.*;
@@ -16,7 +15,6 @@ public class UsuarioDto{
     
     private Integer matricula;
     
-    @Nullable
     private String cursoSigla;
     
     @NotNull

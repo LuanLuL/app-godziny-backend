@@ -6,7 +6,6 @@ import org.springframework.format.annotation.DateTimeFormat;
 import com.cefet.godziny.api.categoria.CategoriaRecuperarDto;
 import com.cefet.godziny.api.usuario.UsuarioRecuperarDto;
 import com.cefet.godziny.constantes.atividade.EnumStatus;
-import io.micrometer.common.lang.Nullable;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.*;
@@ -43,10 +42,8 @@ public class AtividadeRecuperarDto{
     @NotNull
     private UUID arquivoId;
 
-    @Nullable
     private float cargaHoraria;
 
-    @Nullable
     private String comentario;
 }
 

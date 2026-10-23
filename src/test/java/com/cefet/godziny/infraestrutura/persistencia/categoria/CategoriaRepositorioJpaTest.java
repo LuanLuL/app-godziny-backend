@@ -148,7 +148,7 @@ public class CategoriaRepositorioJpaTest {
         this.entidade = createCategoriaEntidade();
         Page<CategoriaEntidade> page = new PageImpl<>(List.of(this.entidade));
         Pageable pageable = PageRequest.of(0, 10);
-        Specification<CategoriaEntidade> specification = Specification.where(null);
+        Specification<CategoriaEntidade> specification = Specification.unrestricted();
 
         when(categoriaRepositorioJpaSpring.findAll(Mockito.any(Specification.class), Mockito.any(Pageable.class))).thenReturn(page);
         Page<CategoriaEntidade> result = categoriaRepositorio.listCategorias(specification, pageable);

@@ -4,7 +4,6 @@ import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
 import java.util.UUID;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.multipart.MultipartFile;
 import com.cefet.godziny.api.atividade.AtividadeDto;
 import com.cefet.godziny.infraestrutura.exceptions.atividade.CriarAtividadeIncompletaException;
@@ -22,16 +21,12 @@ import lombok.*;
 @Setter
 public class CriarAtividadeCasoUso {
 
-    @Autowired
     private final AtividadeRepositorioJpa atividadeRepositorioJpa;
 
-    @Autowired
     private final CategoriaRepositorioJpa categoriaRepositorioJpa;
 
-    @Autowired
     private final UsuarioRepositorioJpa usuarioRepositorioJpa;
 
-    @Autowired
     private final ArquivoRepositorioJpa arquivoRepositorioJpa;
 
     @NotNull(message = "O título da atividade é obrigatório")

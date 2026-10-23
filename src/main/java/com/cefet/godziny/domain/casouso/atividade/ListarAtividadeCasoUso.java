@@ -1,7 +1,6 @@
 package com.cefet.godziny.domain.casouso.atividade;
 
 import java.util.UUID;
-import org.springframework.beans.factory.annotation.Autowired;
 import com.cefet.godziny.api.atividade.AtividadeRecuperarDto;
 import com.cefet.godziny.infraestrutura.persistencia.atividade.AtividadeEntidade;
 import com.cefet.godziny.infraestrutura.persistencia.atividade.AtividadeRepositorioJpa;
@@ -14,7 +13,7 @@ import lombok.AllArgsConstructor;
 
 @AllArgsConstructor
 public class ListarAtividadeCasoUso {
-     @Autowired
+
     private final AtividadeRepositorioJpa atividadeRepositorioJpa;
 
     @NotNull(message = "O ID da atividade é obrigatório")

@@ -2,7 +2,6 @@ package com.cefet.godziny.domain.casouso.atividade;
 
 import java.util.List;
 import java.util.UUID;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
@@ -21,11 +20,9 @@ import lombok.*;
 
 @AllArgsConstructor
 public class PesquisarAtividadeCasoUso {
-    @Autowired
-    private final AtividadeRepositorioJpa atividadeRepositorioJpa;
 
+    private final AtividadeRepositorioJpa atividadeRepositorioJpa;
     
-    @Autowired
     private final CursoRepositorioJpa cursoRepositorioJpa;
 
     @NotNull(message = "O nome do usuario é obrigatório")
@@ -46,7 +43,7 @@ public class PesquisarAtividadeCasoUso {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         UsuarioEntidade userContext = (UsuarioEntidade) authentication.getPrincipal();
 
-        Specification<AtividadeEntidade> specification = Specification.where(null);
+        Specification<AtividadeEntidade> specification = Specification.unrestricted();
     
         if (usuarioNome != null && userContext.getTipo().equals(EnumRecursos.ADM)) {
             specification = specification.and((root, query, criteriaBuilder) ->

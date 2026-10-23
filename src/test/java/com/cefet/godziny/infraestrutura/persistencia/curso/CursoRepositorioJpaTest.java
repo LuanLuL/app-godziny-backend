@@ -123,7 +123,7 @@ public class CursoRepositorioJpaTest {
         this.entidade = createCursoEntidade();
         Page<CursoEntidade> page = new PageImpl<>(List.of(this.entidade));
         Pageable pageable = PageRequest.of(0, 10);
-        Specification<CursoEntidade> specification = Specification.where(null);
+        Specification<CursoEntidade> specification = Specification.unrestricted();;
 
         when(cursoRepositorioJpaSpring.findAll(Mockito.any(Specification.class), Mockito.any(Pageable.class))).thenReturn(page);
         Page<CursoEntidade> result = cursoRepositorio.listCursos(specification, pageable);

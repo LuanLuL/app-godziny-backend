@@ -4,7 +4,6 @@ import java.text.DecimalFormat;
 import java.text.DecimalFormatSymbols;
 import java.util.Locale;
 import java.util.UUID;
-import org.springframework.beans.factory.annotation.Autowired;
 import com.cefet.godziny.api.atividade.AtividadeAtualizarDto;
 import com.cefet.godziny.constantes.atividade.EnumStatus;
 import com.cefet.godziny.infraestrutura.exceptions.atividade.AtualizarAtividadeStatusErradoException;
@@ -25,16 +24,12 @@ import lombok.*;
 @Setter
 public class AtualizarAtivdadeCasoUso {
 
-    @Autowired
     private final AtividadeRepositorioJpa atividadeRepositorioJpa;
 
-    @Autowired
     private final CategoriaRepositorioJpa categoriaRepositorioJpa;
 
-    @Autowired
     private final UsuarioRepositorioJpa usuarioRepositorioJpa;
 
-    @Autowired
     private final ArquivoRepositorioJpa arquivoRepositorioJpa;
 
     @NotNull(message = "O ID da atividade é obrigatório")

@@ -31,7 +31,7 @@ public class PesquisarCategoriaCasoUso {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         UsuarioEntidade userContext = (UsuarioEntidade) authentication.getPrincipal();
 
-        Specification<CategoriaEntidade> specification = Specification.where(null);
+        Specification<CategoriaEntidade> specification = Specification.unrestricted();
 
         if (cursoSigla != null) {
             specification = specification.and((root, query, criteriaBuilder) ->

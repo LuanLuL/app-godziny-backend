@@ -45,7 +45,7 @@ public class PesquisarUsuarioCasoUso {
         UsuarioEntidade admin = (UsuarioEntidade) authentication.getPrincipal();
         List<UUID> cursoIds = cursoRepositorioJpa.findByCoordenador(admin.getMatricula());
 
-        Specification<UsuarioEntidade> specification = Specification.where(null);
+        Specification<UsuarioEntidade> specification = Specification.unrestricted();
         if (nome != null) {
             specification = specification.and((root, query, criteriaBuilder) -> 
                 criteriaBuilder.like(root.get("nome"), "%" + nome + "%"));

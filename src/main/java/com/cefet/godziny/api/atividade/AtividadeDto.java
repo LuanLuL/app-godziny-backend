@@ -4,7 +4,6 @@ import java.time.LocalDateTime;
 import java.util.UUID;
 import org.springframework.format.annotation.DateTimeFormat;
 import com.cefet.godziny.constantes.atividade.EnumStatus;
-import io.micrometer.common.lang.Nullable;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.*;
@@ -37,10 +36,8 @@ public class AtividadeDto{
 
     private UUID arquivoId;
 
-    @Nullable
     private float cargaHoraria;
 
-    @Nullable
     private String comentario;
 }
 

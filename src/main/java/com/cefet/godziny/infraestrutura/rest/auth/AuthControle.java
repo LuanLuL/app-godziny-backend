@@ -1,6 +1,5 @@
 package com.cefet.godziny.infraestrutura.rest.auth;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import com.cefet.godziny.api.auth.AuthDto;
@@ -17,7 +16,6 @@ import org.springframework.web.bind.annotation.RestController;
 @RequiredArgsConstructor
 public class AuthControle implements IAuthApi {
 
-    @Autowired
     private final AuthRepositorioJpa authRepositorioJpa;
 
     @Override

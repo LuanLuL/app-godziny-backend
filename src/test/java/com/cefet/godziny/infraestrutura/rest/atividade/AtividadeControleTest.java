@@ -126,7 +126,7 @@ public class AtividadeControleTest{
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
     }
 
-    @SuppressWarnings({ "null", "unchecked" })
+    @SuppressWarnings({"unchecked"})
     @Test
     @DisplayName("Should search all Atividades successfully")
     void testPesquisarAtividadesSuccess() throws Exception {

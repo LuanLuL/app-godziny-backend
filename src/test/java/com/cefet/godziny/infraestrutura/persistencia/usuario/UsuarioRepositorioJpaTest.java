@@ -184,7 +184,7 @@ public class UsuarioRepositorioJpaTest {
         this.entidade = createUsuarioEntidade();
         Page<UsuarioEntidade> page = new PageImpl<>(List.of(this.entidade));
         Pageable pageable = PageRequest.of(0, 10);
-        Specification<UsuarioEntidade> specification = Specification.where(null);
+        Specification<UsuarioEntidade> specification = Specification.unrestricted();;
 
         when(usuarioRepositorioJpaSpring.findAll(Mockito.any(Specification.class), Mockito.any(Pageable.class))).thenReturn(page);
         Page<UsuarioEntidade> result = usuarioRepositorio.listUsuarios(specification, pageable);

@@ -1,6 +1,5 @@
 package com.cefet.godziny.domain.casouso.atividade.arquivo;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
 import com.cefet.godziny.infraestrutura.exceptions.atividade.arquivo.ArquivoInvalidoException;
@@ -15,7 +14,6 @@ import lombok.*;
 @Setter
 public class CriarArquivoCasoUso {
 
-    @Autowired
     private final ArquivoRepositorioJpaSpring arquivoRepositorioJpa; 
 
     @NotNull(message = "O nome do arquivo é obrigatório")

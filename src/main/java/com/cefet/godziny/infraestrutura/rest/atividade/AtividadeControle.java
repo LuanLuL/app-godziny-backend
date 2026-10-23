@@ -1,7 +1,6 @@
 package com.cefet.godziny.infraestrutura.rest.atividade;
 
 import java.util.UUID;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
@@ -33,19 +32,14 @@ import org.springframework.web.multipart.MultipartFile;
 @RequiredArgsConstructor
 public class AtividadeControle implements IAtividadeApi {
 
-    @Autowired
     private final AtividadeRepositorioJpa atividadeRepositorioJpa;
 
-    @Autowired
     private final UsuarioRepositorioJpa usuarioRepositorioJpa;
 
-    @Autowired
     private final CursoRepositorioJpa cursoRepositorioJpa;
 
-    @Autowired
     private final CategoriaRepositorioJpa categoriaRepositorioJpa;
 
-    @Autowired
     private final ArquivoRepositorioJpa arquivoRepositorioJpa;
 
     @Override

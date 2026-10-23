@@ -14,7 +14,6 @@ import com.cefet.godziny.infraestrutura.persistencia.usuario.UsuarioRepositorioJ
 import com.cefet.godziny.infraestrutura.rest.usuario.UsuarioRestConverter;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotNull;
-import org.springframework.lang.Nullable;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 
@@ -34,7 +33,6 @@ public class CriarUsuarioCasoUso {
     @NotNull(message = "A senha do usuário é obrigatória")
     private String senha;
 
-    @Nullable()
     private String cursoSigla;
 
     @NotNull(message = "A data de criaçao do usuário é obrigatória")

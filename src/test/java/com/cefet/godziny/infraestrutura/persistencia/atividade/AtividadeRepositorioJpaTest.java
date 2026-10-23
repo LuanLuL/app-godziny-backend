@@ -150,7 +150,7 @@ public class AtividadeRepositorioJpaTest {
         this.entidade = createAtividadeEntidade();
         Page<AtividadeEntidade> page = new PageImpl<>(List.of(this.entidade));
         Pageable pageable = PageRequest.of(0, 10);
-        Specification<AtividadeEntidade> specification = Specification.where(null);
+        Specification<AtividadeEntidade> specification = Specification.unrestricted();;
 
         when(atividadeRepositorioJpaSpring.findAll(Mockito.any(Specification.class), Mockito.any(Pageable.class))).thenReturn(page);
         Page<AtividadeEntidade> result = atividadeRepositorio.listAtividades(specification, pageable);

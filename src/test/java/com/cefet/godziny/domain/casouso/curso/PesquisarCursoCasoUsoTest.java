@@ -2,7 +2,6 @@ package com.cefet.godziny.domain.casouso.curso;
 
 import com.cefet.godziny.api.curso.CursoRecuperarDto;
 import com.cefet.godziny.constantes.usuario.EnumRecursos;
-import com.cefet.godziny.domain.casouso.curso.PesquisarCursoCasoUso;
 import com.cefet.godziny.infraestrutura.exceptions.UsuarioNaoAutorizadoException;
 import com.cefet.godziny.infraestrutura.persistencia.curso.CursoEntidade;
 import com.cefet.godziny.infraestrutura.persistencia.curso.CursoRepositorioJpa;
